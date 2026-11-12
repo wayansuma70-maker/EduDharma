@@ -20,7 +20,7 @@ function keluar(sesiHabis) { Sesi.clear(); tutupModal(); location.hash = ''; ren
 async function renderLogin(pesan) {
   document.title = 'Masuk — EduDharma';
   const darurat = location.hash === '#darurat';
-  $('#app').innerHTML = R(h`<main class="login"><div class="card"><div>${MASKOT}</div><h1>EduDharma</h1><p class="muted">Pancasila Digital — belajar karakter, tumbuh bersama.</p>
+  $('#app').innerHTML = R(h`<main class="login"><div class="card"><div>${MASKOT}</div><h1>EduDharma</h1><p class="muted login-slogan">Edukasi Wisata Digital Sempatik_Teknologi Membuka Jalan, Edukasi Menguatkan Langkah, Pesona Memikat Dunia</p>
     ${pesan ? h`<div class="err" role="alert">${pesan}</div>` : ''}
     ${darurat ? h`<form id="f-darurat" class="mt16" style="text-align:left"><div class="field"><label for="du">Nama pengguna darurat</label><input class="input" id="du" autocomplete="username" required></div><div class="field"><label for="dp">Kata sandi darurat</label><input class="input" id="dp" type="password" autocomplete="current-password" required></div><button class="btn block" type="submit">Masuk Darurat</button><p class="hint muted sm mt8">Hanya untuk admin saat Google login belum disiapkan. Sandi ada di log setup Apps Script.</p></form>`
       : h`<div class="gbtn" id="gbtn"><div class="sk" style="width:260px;height:44px"></div></div><p class="muted sm">Masuk dengan akun Google yang didaftarkan sekolah.<br>Belum bisa masuk? Hubungi guru atau admin.</p>`}
