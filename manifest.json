@@ -1,0 +1,17 @@
+{
+  "name": "EduDharma & Pancasila Digital",
+  "short_name": "EduDharma",
+  "description": "Laporan 4F, jurnal Pancasila, dan 7 Kebiasaan Anak Indonesia Hebat.",
+  "lang": "id",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait-primary",
+  "background_color": "#EAF4FF",
+  "theme_color": "#2F7BF5",
+  "icons": [
+    { "src": "icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "icon-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}
