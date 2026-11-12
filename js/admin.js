@@ -8,15 +8,37 @@ function petaCSV(rows, syn) {
   const hd = rows[0].map(hNorm), idx = {}; Object.keys(syn).forEach((k) => { for (let i = 0; i < hd.length; i++) if (syn[k].indexOf(hd[i]) > -1) { idx[k] = i; return; } });
   return rows.slice(1).map((r) => { const o = {}; Object.keys(idx).forEach((k) => { o[k] = String(r[idx[k]] || '').trim(); }); return o; });
 }
-const SIN_PENGGUNA = { nama: ['nama', 'namalengkap', 'namasiswa', 'name'], email: ['email', 'emailsiswa', 'gmail', 'mail'], kelas: ['kelas', 'class', 'rombel'], peran: ['peran', 'role'], noWA: ['nowa', 'wa', 'whatsapp', 'nohp', 'hp', 'telepon', 'nomorhp'], status: ['status'] };
+const SIN_PENGGUNA = { nama: ['nama', 'namalengkap', 'namasiswa', 'name'], nis: ['nis', 'nisn', 'noinduk', 'nomorinduk', 'nisnisn'], email: ['email', 'emailsiswa', 'gmail', 'mail'], kelas: ['kelas', 'class', 'rombel'], peran: ['peran', 'role'], noWA: ['nowa', 'wa', 'whatsapp', 'nohp', 'hp', 'telepon', 'nomorhp'], status: ['status'] };
 const SIN_KONTAK = { nama: ['nama', 'name', 'namalengkap'], email: ['email', 'mail', 'gmail'], wa: ['wa', 'nowa', 'whatsapp', 'nohp', 'hp', 'telepon'], segmen: ['segmen', 'kelompok', 'grup'], tag: ['tag', 'label'] };
-function modalImpor(judul, kolom, contoh, namaFile, syn, aksi, hasil) {
-  modal(judul, h`<p class="muted">Unggah berkas CSV (bisa dibuat dari Excel: <i>Simpan sebagai → CSV</i>). Kolom: <b>${kolom}</b>.</p><div class="row wrap mt8"><button class="btn sec sm" data-act="templatcsv">${ic('download')} Unduh templat</button><input type="file" id="im-f" accept=".csv,text/csv,text/plain" class="input" style="max-width:280px"></div><div id="im-info" class="mt16 muted sm">Belum ada berkas.</div><div class="row mt16" style="justify-content:flex-end"><button class="btn sec" data-act="tutup">Batal</button><button class="btn" id="im-ok" disabled>${ic('upload')} Impor</button></div>`);
-  window._tpl = { contoh: contoh, nama: namaFile }; let rows = [];
-  $('#im-f').onchange = async (e) => { const f = e.target.files[0]; if (!f) return; const t = await f.text(), c = parseCSV(t); if (c.length < 2) { $('#im-info').textContent = 'Berkas kosong atau tidak terbaca.'; return; } rows = petaCSV(c, syn).slice(0, 1000); $('#im-info').innerHTML = R(h`<b>${rows.length} baris</b> siap diimpor (maks. 1.000). Contoh: ${rows.slice(0, 3).map((r) => r.nama).join(', ')}…`); $('#im-ok').disabled = !rows.length; };
+function modalImpor(judul, kolomTeks, tpl, syn, aksi, hasil) {
+  modal(judul, h`<p class="muted">Unggah berkas <b>Excel (.xlsx)</b> atau CSV. Baris pertama = judul kolom: <b>${kolomTeks}</b>.</p>
+    <div class="row wrap mt8"><button class="btn sec sm" data-act="templatxlsx">${ic('download')} Unduh templat Excel</button><button class="btn ghost sm" data-act="templatcsv">Templat CSV</button></div>
+    <div class="field mt16"><label for="im-f">Pilih berkas</label><input type="file" id="im-f" accept=".xlsx,.xls,.csv,text/csv" class="input"></div>
+    <div id="im-info" class="muted sm">Belum ada berkas.</div><div class="row mt16" style="justify-content:flex-end"><button class="btn sec" data-act="tutup">Batal</button><button class="btn" id="im-ok" disabled>${ic('upload')} Impor</button></div>`);
+  window._tpl = tpl; let rows = [];
+  $('#im-f').onchange = async (e) => {
+    const f = e.target.files[0]; if (!f) return; $('#im-info').textContent = 'Membaca berkas…'; $('#im-ok').disabled = true;
+    try {
+      const c = await bacaTabel(f); if (c.length < 2) { $('#im-info').textContent = 'Berkas kosong atau hanya berisi judul kolom.'; return; }
+      rows = petaCSV(c, syn); const kol = rows.length ? Object.keys(rows[0]) : [];
+      if (!kol.length || kol.indexOf('nama') < 0) { $('#im-info').innerHTML = R(h`<span style="color:var(--danger)">Kolom “Nama” tidak ditemukan. Pastikan baris pertama berisi judul kolom seperti pada templat.</span>`); rows = []; return; }
+      rows = rows.slice(0, 1000); $('#im-info').innerHTML = R(h`<b>${rows.length} baris</b> siap diimpor (maks. 1.000 per sekali impor).<br>Kolom terbaca: <b>${kol.join(', ')}</b>.<br>Contoh: ${rows.slice(0, 3).map((r) => r.nama).join(', ')}…`); $('#im-ok').disabled = !rows.length;
+    } catch (er) { $('#im-info').textContent = er.message; }
+  };
   $('#im-ok').onclick = async (e) => { e.target.disabled = true; try { const r = await api(aksi, { rows: rows }); tutupModal(); hasil(r); } catch (er) { gagal(er); e.target.disabled = false; } };
 }
-ACT.templatcsv = () => unduhBlob(new Blob(['\uFEFF' + window._tpl.contoh], { type: 'text/csv' }), window._tpl.nama);
+ACT.templatxlsx = () => unduhTemplatExcel(window._tpl.judul, window._tpl.header, window._tpl.contoh, window._tpl.petunjuk, window._tpl.teks, window._tpl.nama);
+ACT.templatcsv = () => unduhBlob(new Blob(['\uFEFF' + [window._tpl.header].concat(window._tpl.contoh).map((r) => r.map((x) => '"' + String(x).replace(/"/g, '""') + '"').join(',')).join('\n')], { type: 'text/csv' }), window._tpl.nama + '.csv');
+const TPL_PENGGUNA = {
+  judul: 'Data Siswa', nama: 'templat-impor-siswa', header: ['Nama', 'NIS', 'Kelas', 'Peran', 'Email', 'No WA'], teks: [1, 5],
+  contoh: [['Budi Santoso', '20240001', '7A', 'siswa', '', '081234567890'], ['Siti Aminah', '20240002', '7A', 'siswa', '', ''], ['Bu Ani Wijaya', '', '7A,7B', 'guru', 'ani@sekolah.sch.id', '081298765432']],
+  petunjuk: ['PETUNJUK IMPOR PENGGUNA EDUDHARMA', '', '1. Hapus 3 baris contoh, lalu isi data Anda mulai baris 2. Jangan mengubah judul kolom di baris 1.', '2. Kolom wajib: Nama. Untuk SISWA: Kelas dan NIS (atau Email). Untuk GURU/ADMIN: Email Google wajib.', '3. Peran: siswa / guru / admin. Kosong = siswa.', '4. NIS: 3–20 huruf/angka, tidak boleh sama dengan siswa lain. Siswa masuk memakai NIS + kode dari Kartu Login.', '5. Email siswa boleh dikosongkan (siswa tidak perlu akun Google).', '6. Guru: isi Kelas yang diampu dipisah koma (mis. 7A,7B); kosong = semua kelas.', '7. No WA boleh diawali 08, 62, atau +62. Kolom NIS dan No WA diformat Teks agar angka 0 di depan tidak hilang.', '8. Sel yang dikosongkan = data lama TIDAK diubah. Impor aman diulang; siswa yang sama (NIS/email sama) hanya diperbarui, tidak dobel.', '9. Maksimal 1.000 baris per sekali impor; untuk data lebih banyak, bagi menjadi beberapa berkas.']
+};
+const TPL_KONTAK = {
+  judul: 'Kontak', nama: 'templat-kontak', header: ['Nama', 'Email', 'WA', 'Segmen', 'Tag'], teks: [2],
+  contoh: [['Wali Contoh', 'wali@contoh.id', '081234567890', 'Wali', 'prioritas']],
+  petunjuk: ['PETUNJUK IMPOR KONTAK', '', 'Wajib: Nama dan minimal salah satu dari Email atau WA.', 'Segmen: kelompok bebas (mis. Wali, Alumni, Umum). Tag: pisahkan dengan koma.']
+};
 const laporImpor = (r) => { toast('Impor selesai: +' + (r.ditambah || 0) + ' baru' + (r.diperbarui !== undefined ? ', ' + r.diperbarui + ' diperbarui' : '') + ', ' + r.galat.length + ' dilewati.', r.galat.length ? 'warn' : 'success'); if (r.galat.length) modal('Baris yang dilewati', h`<ul style="padding-left:18px">${r.galat.slice(0, 40).map((g) => h`<li>${g}</li>`)}</ul>`); renderRoute(); };
 
 // =============== CRM KONTAK ===============
@@ -45,7 +67,7 @@ ACT['crmf-reset'] = () => crmSet({}); ACT['crmf-terdaftar'] = () => crmSet({ sta
 INP.crmpilih = (t) => { const C = window._crm, i = C.sel.indexOf(t.dataset.id); if (t.checked && i < 0) C.sel.push(t.dataset.id); if (!t.checked && i > -1) C.sel.splice(i, 1); crmGambar().catch(gagal); };
 INP.crmall = (t) => { const C = window._crm; C.ls.rows.forEach((r) => { const i = C.sel.indexOf(r.id); if (t.checked && i < 0) C.sel.push(r.id); if (!t.checked && i > -1) C.sel.splice(i, 1); }); crmGambar().catch(gagal); };
 ACT.crmsync = async (b) => { b.disabled = true; try { const r = await api('crm.sync', {}); toast('Sinkron selesai: +' + r.ditambah + ' baru, ' + r.diperbarui + ' diperbarui.', 'success'); await crmGambar(); } catch (e) { gagal(e); b.disabled = false; } };
-ACT.crmimpor = () => modalImpor('Impor Kontak dari CSV', 'nama, email, wa, segmen, tag', 'nama,email,wa,segmen,tag\nWali Contoh,wali@contoh.id,081234567890,Wali,prioritas\n', 'templat-kontak.csv', SIN_KONTAK, 'crm.import', laporImpor);
+ACT.crmimpor = () => modalImpor('Impor Kontak (Excel/CSV)', 'Nama, Email, WA, Segmen, Tag', TPL_KONTAK, SIN_KONTAK, 'crm.import', laporImpor);
 ACT.crmekspor = async (b) => { b.disabled = true; try { const r = await api('crm.export', window._crm.f); await unduhExcel(r.rows, 'kontak-crm-' + hariIni()); } catch (e) { gagal(e); } b.disabled = false; };
 ACT.crmbulk = (b) => {
   const a = b.dataset.a, C = window._crm;
@@ -126,26 +148,60 @@ ACT.ntsimpan = async (b) => {
 };
 
 // =============== PENGGUNA ===============
+const PG_PER = 50;
 PAGES.pengguna = {
   roles: ADM, judul: 'Pengguna', render: async (el, a, live) => {
-    const f = window._pf = Object.assign({ peran: '', cari: '' }, window._pf || {}), d = await api('pengguna.list', {}); if (!live()) return; window._pu = d.rows;
-    const l = d.rows.filter((u) => (!f.peran || u.peran === f.peran) && (!f.cari || (u.nama + u.email).toLowerCase().indexOf(f.cari.toLowerCase()) > -1));
-    el.innerHTML = R(h`${ph('Pengguna', 'Daftar akun yang boleh masuk lewat Google. Email di sini harus sama dengan akun Google siswa/guru.', h`<button class="btn sec" data-act="pgimpor">${ic('upload')} Impor CSV</button><button class="btn" data-act="pgbaru">${ic('plus')} Tambah</button>`)}
-      <div class="toolbar"><input class="input" type="search" placeholder="Cari nama/email…" value="${f.cari}" data-ch="pgf" data-k="cari" aria-label="Cari"><select class="select" data-ch="pgf" data-k="peran" aria-label="Peran"><option value="">Semua peran</option>${['siswa', 'guru', 'admin'].map((p) => h`<option ${p === f.peran ? 'selected' : ''}>${p}</option>`)}</select><span class="sm muted">${l.length} dari ${d.rows.length}</span></div>
-      <div class="table-wrap"><table><thead><tr><th>Nama</th><th>Email</th><th>Peran</th><th>Kelas</th><th>WhatsApp</th><th>Status</th></tr></thead><tbody>${l.slice(0, 300).map((u) => h`<tr class="clk" data-act="pgedit" data-id="${u.id}"><td><b>${u.nama}</b></td><td>${u.email}</td><td>${pill(u.peran, u.peran === 'admin' ? 'orange' : u.peran === 'guru' ? 'purple' : '')}</td><td>${u.kelas || '-'}</td><td>${u.noWA || '-'}</td><td>${statusPill(u.status)}</td></tr>`)}</tbody></table></div>`);
+    const f = window._pf = Object.assign({ peran: '', cari: '', kelas: '', halaman: 1 }, window._pf || {}), d = await api('pengguna.list', {}); if (!live()) return; window._pu = d.rows;
+    const kelasAda = Array.from(new Set(d.rows.filter((u) => u.peran === 'siswa' && u.kelas).map((u) => u.kelas))).sort();
+    const q = f.cari.toLowerCase(), l = d.rows.filter((u) => (!f.peran || u.peran === f.peran) && (!f.kelas || u.kelas === f.kelas) && (!q || (u.nama + ' ' + u.email + ' ' + u.nis).toLowerCase().indexOf(q) > -1));
+    const tanpaNis = d.rows.filter((u) => u.peran === 'siswa' && u.status === 'Aktif' && !u.nis).length, nSiswa = d.rows.filter((u) => u.peran === 'siswa').length;
+    el.innerHTML = R(h`${ph('Pengguna', 'Siswa masuk dengan NIS + kode (tanpa akun Google); guru dan admin masuk dengan akun Google.', h`<a class="btn sec" href="#/kartu">${ic('key')} Kartu Login Siswa</a><button class="btn sec" data-act="pgimpor">${ic('upload')} Impor Excel/CSV</button><button class="btn" data-act="pgbaru">${ic('plus')} Tambah</button>`)}
+      <div class="row wrap mb16"><span class="pill">${d.rows.length} pengguna</span><span class="pill green">${nSiswa} siswa</span>${tanpaNis ? pill(tanpaNis + ' siswa belum punya NIS (tidak bisa masuk lewat NIS)', 'orange') : ''}</div>
+      <div class="toolbar"><input class="input" type="search" placeholder="Cari nama, NIS, atau email…" value="${f.cari}" data-ch="pgf" data-k="cari" aria-label="Cari"><select class="select" data-ch="pgf" data-k="peran" aria-label="Peran"><option value="">Semua peran</option>${['siswa', 'guru', 'admin'].map((p) => h`<option ${p === f.peran ? 'selected' : ''}>${p}</option>`)}</select><select class="select" data-ch="pgf" data-k="kelas" aria-label="Kelas"><option value="">Semua kelas</option>${kelasAda.map((k) => h`<option ${k === f.kelas ? 'selected' : ''}>${k}</option>`)}</select><span class="sm muted">${l.length} cocok</span></div>
+      <div class="table-wrap"><table><thead><tr><th>Nama</th><th>NIS</th><th>Email</th><th>Peran</th><th>Kelas</th><th>WhatsApp</th><th>Status</th></tr></thead><tbody>${l.slice((f.halaman - 1) * PG_PER, f.halaman * PG_PER).map((u) => h`<tr class="clk" data-act="pgedit" data-id="${u.id}"><td><b>${u.nama}</b></td><td>${u.nis || '-'}</td><td>${u.email || '-'}</td><td>${pill(u.peran, u.peran === 'admin' ? 'orange' : u.peran === 'guru' ? 'purple' : '')}</td><td>${u.kelas || '-'}</td><td>${u.noWA || '-'}</td><td>${statusPill(u.status)}</td></tr>`)}</tbody></table></div>${pager(l.length, PG_PER, f.halaman, 'pghal')}`);
   }
 };
-INP.pgf = (t) => { window._pf[t.dataset.k] = t.value; renderRoute(); };
+INP.pgf = (t) => { window._pf[t.dataset.k] = t.value; window._pf.halaman = 1; renderRoute(); };
+ACT.pghal = (b) => { window._pf.halaman = Number(b.dataset.p); renderRoute(); };
 function pgForm(u) {
   u = u || { peran: 'siswa', status: 'Aktif' };
-  modal(u.id ? 'Ubah Pengguna' : 'Tambah Pengguna', h`<form id="f-pg"><div class="field"><label for="pg-n">Nama lengkap</label><input class="input" id="pg-n" required maxlength="100" value="${u.nama || ''}"></div><div class="field"><label for="pg-e">Email Google</label><input class="input" id="pg-e" type="email" required value="${u.email || ''}" ${u.id ? 'readonly' : ''}></div>
+  const guruAdm = u.id && u.peran !== 'siswa';
+  modal(u.id ? 'Ubah Pengguna' : 'Tambah Pengguna', h`<form id="f-pg"><input type="hidden" id="pg-id" value="${u.id || ''}"><div class="field"><label for="pg-n">Nama lengkap</label><input class="input" id="pg-n" required maxlength="100" value="${u.nama || ''}"></div>
     <div class="grid g2"><div class="field"><label for="pg-p">Peran</label><select class="select" id="pg-p">${['siswa', 'guru', 'admin'].map((p) => h`<option ${p === u.peran ? 'selected' : ''}>${p}</option>`)}</select></div><div class="field"><label for="pg-k">Kelas</label><input class="input" id="pg-k" value="${u.kelas || ''}" placeholder="7B (guru: 7B,7C)"><span class="hint">Siswa: satu kelas. Guru: kelas yang diampu (kosong = semua).</span></div></div>
+    <div class="grid g2"><div class="field"><label for="pg-i">NIS (untuk siswa)</label><input class="input" id="pg-i" maxlength="20" value="${u.nis || ''}" placeholder="mis. 20240001"><span class="hint">Siswa masuk memakai NIS + kode dari Kartu Login.</span></div><div class="field"><label for="pg-e">Email Google ${u.peran === 'siswa' || !u.id ? '(opsional untuk siswa)' : ''}</label><input class="input" id="pg-e" type="email" value="${u.email || ''}" ${guruAdm ? 'readonly' : ''}><span class="hint">Wajib untuk guru/admin.</span></div></div>
     <div class="grid g2"><div class="field"><label for="pg-w">WhatsApp</label><input class="input" id="pg-w" inputmode="tel" value="${u.noWA || ''}" placeholder="081234567890"></div><div class="field"><label for="pg-s">Status</label><select class="select" id="pg-s"><option ${u.status === 'Aktif' ? 'selected' : ''}>Aktif</option><option ${u.status === 'Nonaktif' ? 'selected' : ''}>Nonaktif</option></select></div></div>
     <div class="row" style="justify-content:flex-end"><button type="button" class="btn sec" data-act="tutup">Batal</button><button class="btn" type="submit">${ic('save')} Simpan</button></div></form>`);
-  $('#f-pg').onsubmit = async (e) => { e.preventDefault(); const b = tombolKirim(e); b.disabled = true; try { await api('pengguna.simpan', { nama: $('#pg-n').value, email: $('#pg-e').value, peran: $('#pg-p').value, kelas: $('#pg-k').value, noWA: $('#pg-w').value, status: $('#pg-s').value }); tutupModal(); toast('Pengguna tersimpan.', 'success'); renderRoute(); } catch (er) { gagal(er); b.disabled = false; } };
+  $('#f-pg').onsubmit = async (e) => { e.preventDefault(); const b = tombolKirim(e); b.disabled = true; try { await api('pengguna.simpan', { id: $('#pg-id').value || undefined, nama: $('#pg-n').value, nis: $('#pg-i').value, email: $('#pg-e').value, peran: $('#pg-p').value, kelas: $('#pg-k').value, noWA: $('#pg-w').value, status: $('#pg-s').value }); tutupModal(); toast('Pengguna tersimpan.', 'success'); renderRoute(); } catch (er) { gagal(er); b.disabled = false; } };
 }
 ACT.pgbaru = () => pgForm(); ACT.pgedit = (b) => pgForm(window._pu.find((x) => x.id === b.dataset.id));
-ACT.pgimpor = () => modalImpor('Impor Pengguna dari CSV', 'nama, email, kelas, peran, wa (peran: siswa/guru)', 'nama,email,kelas,peran,wa\nBudi Santoso,budi@sekolah.sch.id,7B,siswa,081234567890\nBu Ani,ani@sekolah.sch.id,7B,guru,081298765432\n', 'templat-pengguna.csv', SIN_PENGGUNA, 'pengguna.import', laporImpor);
+ACT.pgimpor = () => modalImpor('Impor Pengguna (Excel/CSV)', 'Nama, NIS, Kelas, Peran, Email, No WA', TPL_PENGGUNA, SIN_PENGGUNA, 'pengguna.import', laporImpor);
+
+// =============== AKUN & KARTU LOGIN SISWA ===============
+const KARTU_PER = 50;
+const tautanSiswa = () => location.origin + location.pathname + '#siswa';
+PAGES.kartu = {
+  roles: G, judul: 'Akun & Kartu Siswa', render: async (el, a, live) => {
+    const K = window._kt = Object.assign({ kelas: '', cari: '', tampil: false, halaman: 1 }, window._kt || {}); K.el = el;
+    const d = await api('kode.daftar', { kelas: K.kelas }); if (!live()) return; K.d = d; ktGambar();
+  }
+};
+function ktGambar() {
+  const K = window._kt, d = K.d, q = K.cari.toLowerCase(), l = d.rows.filter((r) => !q || (r.nama + ' ' + r.nis).toLowerCase().indexOf(q) > -1), tanpa = d.rows.filter((r) => !r.nis).length;
+  K.el.innerHTML = R(h`${ph('Akun & Kartu Login Siswa', 'Siswa masuk dengan NIS + kode 6 karakter. Cetak kartunya, bagikan ke masing-masing siswa.', h`<button class="btn sec" data-act="ktxlsx">${ic('download')} Unduh Excel</button><button class="btn" data-act="ktcetak">${ic('file')} Cetak Kartu</button>`)}
+    ${d.nisAktif ? '' : h`<div class="card flat mb16" style="background:var(--orange-soft);border:0"><b>Login NIS sedang dinonaktifkan.</b> Aktifkan di Pengaturan → Umum (LOGIN NIS AKTIF = YA).</div>`}
+    <section class="card acc-blue mb16"><b>Tautan login siswa</b><p class="sm muted">Bagikan tautan ini lewat grup kelas. Halamannya langsung menampilkan form NIS + kode.</p><div class="row wrap mt8"><input class="input" id="kt-url" readonly value="${tautanSiswa()}" style="max-width:520px" aria-label="Tautan login siswa"><button class="btn sec" data-act="ktsalin">${ic('link')} Salin</button></div></section>
+    <div class="toolbar"><select class="select" data-ch="ktf" data-k="kelas" aria-label="Kelas"><option value="">Semua kelas</option>${d.kelasList.map((k) => h`<option ${k === K.kelas ? 'selected' : ''}>${k}</option>`)}</select><input class="input" type="search" placeholder="Cari nama atau NIS…" value="${K.cari}" data-in="ktcari" aria-label="Cari"><button class="btn sec" data-act="kttampil">${ic('eye')} ${K.tampil ? 'Sembunyikan kode' : 'Tampilkan kode'}</button><span class="sm muted">${l.length} siswa${tanpa ? ' · ' + tanpa + ' belum ber-NIS' : ''}</span></div>
+    ${l.length ? h`<div class="table-wrap"><table><thead><tr><th>Nama</th><th>Kelas</th><th>NIS</th><th>Kode</th><th></th></tr></thead><tbody>${l.slice((K.halaman - 1) * KARTU_PER, K.halaman * KARTU_PER).map((r) => h`<tr><td><b>${r.nama}</b></td><td>${r.kelas}</td><td>${r.nis || h`<span class="pill orange">isi NIS dulu</span>`}</td><td style="font-family:'Courier New',monospace;font-weight:700;letter-spacing:.2em">${r.nis ? (K.tampil ? r.kode : '••••••') : '-'}</td><td>${r.nis ? h`<button class="btn sec sm" data-act="ktreset" data-id="${r.id}" data-n="${r.nama}">Atur ulang kode</button>` : ''}</td></tr>`)}</tbody></table></div>${pager(l.length, KARTU_PER, K.halaman, 'kthal')}` : h`<div class="card">${empty('Belum ada siswa', 'Tambahkan siswa lewat menu Pengguna (admin), lalu kembali ke sini.')}</div>`}
+    <p class="sm muted mt16">Kode dihitung otomatis dari kunci rahasia di server — tidak tersimpan di spreadsheet. “Atur ulang kode” membuat kode baru dan langsung mengeluarkan siswa dari semua perangkat.</p>`);
+}
+INP.ktf = (t) => { window._kt.kelas = t.value; window._kt.halaman = 1; renderRoute(); };
+INP.ktcari = debounce((t) => { window._kt.cari = t.value; window._kt.halaman = 1; ktGambar(); const n = $('[data-in=ktcari]'); if (n) { n.focus(); n.setSelectionRange(n.value.length, n.value.length); } }, 300);
+ACT.kttampil = () => { window._kt.tampil = !window._kt.tampil; ktGambar(); };
+ACT.kthal = (b) => { window._kt.halaman = Number(b.dataset.p); ktGambar(); };
+ACT.ktsalin = async () => { const u = $('#kt-url').value; try { await navigator.clipboard.writeText(u); toast('Tautan disalin.', 'success'); } catch (e) { $('#kt-url').select(); toast('Tekan Ctrl+C untuk menyalin.', 'warn'); } };
+ACT.ktcetak = () => konfirmasi('Cetak kartu login?', 'Kartu berisi kode rahasia siswa. Cetak lalu bagikan hanya kepada siswa yang bersangkutan, dan jangan unggah ke grup.', 'Cetak', () => cetakKartu(window._kt.d.rows, setting('NAMA_SEKOLAH', 'Sekolah'), tautanSiswa()));
+ACT.ktxlsx = () => konfirmasi('Unduh daftar kode?', 'Berkas berisi kode rahasia siswa. Simpan dengan aman dan jangan dibagikan ke grup.', 'Unduh', () => unduhExcel(window._kt.d.rows.filter((r) => r.nis).map((r) => ({ Nama: r.nama, Kelas: r.kelas, NIS: r.nis, Kode: r.kode })), 'kode-login-siswa-' + hariIni()));
+ACT.ktreset = (b) => konfirmasi('Atur ulang kode ' + b.dataset.n + '?', 'Kode lama langsung tidak berlaku dan siswa dikeluarkan dari semua perangkat. Kode baru akan ditampilkan.', 'Atur ulang', async () => { try { const r = await api('kode.reset', { id: b.dataset.id }); modal('Kode baru', h`<p><b>${b.dataset.n}</b></p><div class="center" style="font:800 34px 'Courier New',monospace;letter-spacing:.3em;margin:16px 0">${r.kode}</div><p class="muted sm">Berikan kode ini kepada siswa yang bersangkutan.</p><div class="row mt16" style="justify-content:flex-end"><button class="btn" data-act="tutup">Selesai</button></div>`); renderRoute(); } catch (e) { gagal(e); } }, true);
 
 // =============== PENGATURAN ===============
 PAGES.pengaturan = {

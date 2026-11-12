@@ -3,7 +3,7 @@
 const Router = { id: 0 };
 const MENU = {
   siswa: [['beranda', 'Beranda', 'home'], ['laporan', 'Laporan 4F', 'edit'], ['jurnal', 'Jurnal Pancasila', 'book'], ['kebiasaan', '7 Kebiasaan', 'checkc'], ['bukti', 'Kumpulkan Bukti', 'upload'], ['nilai', 'Nilai & Umpan Balik', 'star']],
-  guru: [['guru', 'Beranda Guru', 'home'], ['tugas', 'Kelola Tugas', 'edit'], ['submission', 'Submission', 'table'], ['rekap', 'Rekap & Ekspor', 'chart'], ['crm', 'CRM Kontak', 'users'], ['notif', 'WhatsApp & Notifikasi', 'message']],
+  guru: [['guru', 'Beranda Guru', 'home'], ['tugas', 'Kelola Tugas', 'edit'], ['submission', 'Submission', 'table'], ['rekap', 'Rekap & Ekspor', 'chart'], ['crm', 'CRM Kontak', 'users'], ['kartu', 'Akun & Kartu Siswa', 'key'], ['notif', 'WhatsApp & Notifikasi', 'message']],
   admin: [['pengguna', 'Pengguna', 'users'], ['pengaturan', 'Pengaturan', 'settings'], ['migrasi', 'Impor Data Lama', 'download']]
 };
 const menuUntuk = (p) => (p === 'siswa' ? [MENU.siswa] : p === 'guru' ? [MENU.guru] : [MENU.guru, MENU.admin]);
@@ -17,25 +17,42 @@ function nav(hash) { if (location.hash === '#/' + hash) renderRoute(); else loca
 function keluar(sesiHabis) { Sesi.clear(); tutupModal(); location.hash = ''; renderLogin(sesiHabis ? 'Sesi berakhir. Silakan masuk lagi.' : ''); }
 
 // ---------- Login ----------
+let _tabLogin = null;
 async function renderLogin(pesan) {
   document.title = 'Masuk — EduDharma';
   const darurat = location.hash === '#darurat';
   $('#app').innerHTML = R(h`<main class="login"><div class="card"><div>${MASKOT}</div><h1>EduDharma</h1><p class="muted login-slogan">Edukasi Wisata Digital Sempatik_Teknologi Membuka Jalan, Edukasi Menguatkan Langkah, Pesona Memikat Dunia</p>
     ${pesan ? h`<div class="err" role="alert">${pesan}</div>` : ''}
     ${darurat ? h`<form id="f-darurat" class="mt16" style="text-align:left"><div class="field"><label for="du">Nama pengguna darurat</label><input class="input" id="du" autocomplete="username" required></div><div class="field"><label for="dp">Kata sandi darurat</label><input class="input" id="dp" type="password" autocomplete="current-password" required></div><button class="btn block" type="submit">Masuk Darurat</button><p class="hint muted sm mt8">Hanya untuk admin saat Google login belum disiapkan. Sandi ada di log setup Apps Script.</p></form>`
-      : h`<div class="gbtn" id="gbtn"><div class="sk" style="width:260px;height:44px"></div></div><p class="muted sm">Masuk dengan akun Google yang didaftarkan sekolah.<br>Belum bisa masuk? Hubungi guru atau admin.</p>`}
+      : h`<div id="login-body"><div class="sk mt16" style="height:150px"></div></div>`}
     <div id="login-err"></div></div></main>`);
   hangatkan();
   if (darurat) { $('#f-darurat').onsubmit = async (e) => { e.preventDefault(); const b = tombolKirim(e); b.disabled = true; try { const d = await api('auth.darurat', { username: $('#du').value, password: $('#dp').value }); Sesi.set({ token: d.token, me: d.me, meta: d.meta }); location.hash = ''; mulai(); } catch (er) { $('#login-err').innerHTML = R(h`<div class="err" role="alert">${er.message}</div>`); b.disabled = false; } }; return; }
+  try { window._cfgPublik = await api('auth.config', {}); loginBody(); }
+  catch (e) { $('#login-body').innerHTML = R(h`<div class="err">${e.message}</div><button class="btn mt16" data-act="muat-ulang">${ic('refresh')} Coba lagi</button>`); }
+}
+function loginBody() {
+  const c = window._cfgPublik, nisAktif = (c.setting || {}).LOGIN_NIS_AKTIF !== 'TIDAK';
+  let tab = location.hash === '#guru' ? 'guru' : location.hash === '#siswa' ? 'siswa' : (_tabLogin || 'siswa');
+  if (!nisAktif) tab = 'guru'; _tabLogin = tab;
+  $('#login-body').innerHTML = R(h`${nisAktif ? h`<div class="tabs" role="tablist" style="margin:18px auto 0">${[['siswa', 'Siswa'], ['guru', 'Guru & Admin']].map((t) => h`<button role="tab" class="${tab === t[0] ? 'on' : ''}" aria-selected="${tab === t[0]}" data-act="logintab" data-t="${t[0]}">${t[1]}</button>`)}</div>` : ''}
+    ${tab === 'siswa' ? h`<form id="f-nis" class="mt16" style="text-align:left" autocomplete="off"><div class="field"><label for="ln">NIS</label><input class="input" id="ln" autocomplete="username" autocapitalize="off" spellcheck="false" required maxlength="30" placeholder="Nomor induk siswa"></div>
+      <div class="field"><label for="lk">Kode masuk (6 karakter)</label><input class="input kode-in" id="lk" autocomplete="off" autocapitalize="characters" spellcheck="false" required maxlength="10" placeholder="ABC123"><span class="hint">Lihat di kartu login dari gurumu. Huruf besar/kecil tidak masalah.</span></div>
+      <button class="btn block" type="submit">Masuk</button><p class="muted sm center mt8">Lupa atau kartu hilang? Minta gurumu mengatur ulang kodenya.</p></form>`
+      : h`<div class="gbtn" id="gbtn"><div class="sk" style="width:260px;height:44px"></div></div><p class="muted sm">Masuk dengan akun Google yang didaftarkan sekolah.<br>Belum bisa masuk? Hubungi admin sekolah.</p>`}`);
+  if (tab === 'siswa') {
+    $('#f-nis').onsubmit = async (e) => { e.preventDefault(); const b = tombolKirim(e); b.disabled = true; $('#login-err').innerHTML = ''; try { const d = await api('auth.nis', { nis: $('#ln').value, kode: $('#lk').value }); Sesi.set({ token: d.token, me: d.me, meta: d.meta }); if (/^#(siswa|guru)$/.test(location.hash)) history.replaceState(null, '', location.pathname + location.search); mulai(); } catch (er) { $('#login-err').innerHTML = R(h`<div class="err" role="alert">${er.message}</div>`); b.disabled = false; $('#lk').select(); } };
+  } else initGoogle(c);
+}
+async function initGoogle(c) {
   try {
-    const c = await api('auth.config', {});
-    window._cfgPublik = c;
     if (!c.googleClientId) { $('#gbtn').innerHTML = R(h`<div class="err">Admin belum mengisi Google Client ID. Admin dapat masuk lewat akses darurat (tambahkan <b>#darurat</b> di akhir alamat).</div>`); return; }
     await muatSkrip('https://accounts.google.com/gsi/client');
     google.accounts.id.initialize({ client_id: c.googleClientId, callback: onKredensial, auto_select: false });
     $('#gbtn').innerHTML = ''; google.accounts.id.renderButton($('#gbtn'), { theme: 'outline', size: 'large', text: 'signin_with', shape: 'pill', width: 300, locale: 'id' });
   } catch (e) { $('#gbtn').innerHTML = R(h`<div class="err">${e.message}</div>`); }
 }
+ACT.logintab = (b) => { _tabLogin = b.dataset.t; history.replaceState(null, '', '#' + b.dataset.t); $('#login-err').innerHTML = ''; loginBody(); };
 async function onKredensial(resp) {
   try { const d = await api('auth.google', { credential: resp.credential }); Sesi.set({ token: d.token, me: d.me, meta: d.meta }); mulai(); }
   catch (e) { $('#login-err').innerHTML = R(h`<div class="err" role="alert">${e.message}</div>`); }
@@ -113,7 +130,7 @@ document.addEventListener('click', (e) => {
 });
 document.addEventListener('input', (e) => { const t = e.target.closest('[data-in]'); if (t && INP[t.dataset.in]) INP[t.dataset.in](t, e); });
 document.addEventListener('change', (e) => { const t = e.target.closest('[data-ch]'); if (t && INP[t.dataset.ch]) INP[t.dataset.ch](t, e); });
-window.addEventListener('hashchange', () => { if (location.hash === '#darurat') renderLogin(); else renderRoute(); });
+window.addEventListener('hashchange', () => { if (location.hash === '#darurat') renderLogin(); else if (!Sesi.get() && /^#(siswa|guru)$/.test(location.hash)) { if ($('#login-body')) { _tabLogin = null; loginBody(); } else renderLogin(); } else renderRoute(); });
 window.addEventListener('online', () => { const o = $('#offline'); if (o) o.classList.add('hide'); toast('Kembali online.', 'success'); });
 window.addEventListener('offline', () => { const o = $('#offline'); if (o) o.classList.remove('hide'); });
 window.addEventListener('beforeinstallprompt', (e) => { e.preventDefault(); window._pasang = e; const b = $('#btn-install'); if (b) b.classList.remove('hide'); });

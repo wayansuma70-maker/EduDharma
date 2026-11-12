@@ -106,10 +106,42 @@ function unduhCSV(rows, nama) {
   unduhBlob(new Blob(['\uFEFF' + [k.map(q).join(',')].concat(rows.map((r) => k.map((x) => q(r[x])).join(','))).join('\n')], { type: 'text/csv' }), nama + '.csv');
 }
 function muatSkrip(src) { return new Promise((ok, no) => { if ($('script[src="' + src + '"]')) return ok(); const s = document.createElement('script'); s.src = src; s.onload = ok; s.onerror = () => no(new Error('gagal memuat ' + src)); document.head.appendChild(s); }); }
+const URL_XLSX = 'https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js';
+async function muatXLSX() { if (window.XLSX) return; await muatSkrip(URL_XLSX); if (!window.XLSX) throw new Error('Pustaka Excel gagal dimuat.'); }
 async function unduhExcel(rows, nama) {
   if (!rows.length) return toast('Tidak ada data untuk diunduh.', 'warn');
-  try { await muatSkrip('https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js'); const wb = XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(rows), 'Data'); XLSX.writeFile(wb, nama + '.xlsx'); }
+  try { await muatXLSX(); const wb = XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(rows), 'Data'); XLSX.writeFile(wb, nama + '.xlsx'); }
   catch (e) { toast('Pustaka Excel tidak bisa dimuat (offline?). Mengunduh CSV yang bisa dibuka di Excel.', 'warn'); unduhCSV(rows, nama); }
+}
+// Templat impor Excel: lembar data (kolom NIS/WA berformat Teks agar angka 0 di depan tidak hilang) + lembar Petunjuk
+function bangunTemplatXlsx(judul, header, contoh, petunjuk, kolomTeks) {
+  const wb = XLSX.utils.book_new(), ws = XLSX.utils.aoa_to_sheet([header].concat(contoh));
+  ws['!cols'] = header.map((x) => ({ wch: Math.max(16, String(x).length + 6) }));
+  (kolomTeks || []).forEach((c) => { for (let r = 2; r <= 600; r++) { const ref = XLSX.utils.encode_cell({ r: r - 1, c: c }); const sel = ws[ref] || { t: 's', v: '' }; sel.t = 's'; sel.z = '@'; ws[ref] = sel; } });
+  ws['!ref'] = XLSX.utils.encode_range({ s: { r: 0, c: 0 }, e: { r: 599, c: header.length - 1 } });
+  XLSX.utils.book_append_sheet(wb, ws, judul); XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(petunjuk.map((x) => [x])), 'Petunjuk');
+  return wb;
+}
+async function unduhTemplatExcel(judul, header, contoh, petunjuk, kolomTeks, nama) {
+  try { await muatXLSX(); XLSX.writeFile(bangunTemplatXlsx(judul, header, contoh, petunjuk, kolomTeks), nama + '.xlsx'); }
+  catch (e) { toast('Pustaka Excel tidak bisa dimuat. Mengunduh templat CSV.', 'warn'); unduhBlob(new Blob(['\uFEFF' + [header].concat(contoh).map((r) => r.join(',')).join('\n')], { type: 'text/csv' }), nama + '.csv'); }
+}
+// Baca berkas tabel (.xlsx/.xls/.csv) → larik baris (semua sel berupa teks)
+async function bacaTabel(file) {
+  if (/\.xlsx?$/i.test(file.name)) {
+    await muatXLSX();
+    const wb = XLSX.read(await file.arrayBuffer(), { type: 'array' }), ws = wb.Sheets[wb.SheetNames[0]];
+    return XLSX.utils.sheet_to_json(ws, { header: 1, raw: false, defval: '' }).map((r) => r.map((x) => String(x === null || x === undefined ? '' : x).trim())).filter((r) => r.some((x) => x !== ''));
+  }
+  return parseCSV(await file.text());
+}
+// Kartu login siswa: 2 kolom × 4 baris per lembar A4, siap dipotong
+function cetakKartu(rows, sekolah, url) {
+  const ada = rows.filter((r) => r.nis && r.kode);
+  if (!ada.length) return toast('Tidak ada siswa ber-NIS untuk dicetak.', 'warn');
+  const f = document.createElement('iframe'); f.style.cssText = 'position:fixed;right:0;bottom:0;width:0;height:0;border:0'; document.body.appendChild(f);
+  f.contentDocument.write(R(h`<html><head><title>Kartu Login Siswa</title><style>@page{size:A4;margin:9mm}body{font:12px Arial,sans-serif;margin:0}.g{display:grid;grid-template-columns:1fr 1fr;gap:5mm}.k{border:1.5px dashed #777;border-radius:8px;padding:8px 10px;height:60mm;box-sizing:border-box;page-break-inside:avoid;display:flex;flex-direction:column;gap:3px}.hd{display:flex;justify-content:space-between;color:#2F7BF5;font-size:11px;border-bottom:1px solid #ddd;padding-bottom:3px}.nm{font-size:15px;font-weight:700;margin-top:4px}.kl{color:#555}table{margin-top:2px}td{padding:1px 8px 1px 0}.kode{font:700 22px 'Courier New',monospace;letter-spacing:4px}.ft{margin-top:auto;font-size:10px;color:#555}</style></head><body><div class="g">${ada.map((r) => h`<div class="k"><div class="hd"><b>${sekolah}</b><span>EduDharma</span></div><div class="nm">${r.nama}</div><div class="kl">Kelas ${r.kelas}</div><table><tr><td>NIS</td><td><b>${r.nis}</b></td></tr><tr><td>Kode</td><td class="kode">${r.kode}</td></tr></table><div class="ft">Buka: ${url}<br>Rahasiakan kodemu. Jangan bagikan kepada siapa pun.</div></div>`)}</div></body></html>`));
+  f.contentDocument.close(); setTimeout(() => { f.contentWindow.focus(); f.contentWindow.print(); setTimeout(() => f.remove(), 1500); }, 300);
 }
 function cetakPDF(judul, rows) {
   if (!rows.length) return toast('Tidak ada data untuk dicetak.', 'warn');
