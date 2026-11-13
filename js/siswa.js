@@ -9,11 +9,35 @@ const SILA_PANDUAN = [
   ['Tindakan hidup hemat, menghargai karya teman, atau bersikap adil saat giliran piket kelas.', 'Menghabiskan makanan tanpa sisa dan mematikan lampu kelas saat keluar.']
 ];
 const F4 = [
-  { k: 'fakta', label: 'Fakta (Facts)', judul: 'Apa yang terjadi selama kegiatan?', tanya: 'Ceritakan kejadiannya apa adanya: kapan, di mana, siapa saja yang terlibat, dan apa yang kamu lakukan.', contoh: 'Pada hari Sabtu, kelas 7B melakukan kerja bakti membersihkan selokan di sekitar balai RW. Kami dibagi menjadi tiga tim: membersihkan selokan, memilah sampah, dan menanam bibit pohon.' },
-  { k: 'feeling', label: 'Perasaan (Feeling)', judul: 'Apa yang kamu rasakan selama kegiatan berlangsung?', tanya: 'Ceritakan perasaan senang, bingung, bangga, ragu, atau tertantang yang kamu dan teman-temanmu alami.', contoh: 'Awalnya saya sedikit ragu karena belum pernah turun membersihkan selokan, tetapi setelah melihat semua orang saling membantu dengan ceria, saya merasa bangga menjadi bagian dari kegiatan ini.', emosi: true },
-  { k: 'finding', label: 'Pembelajaran (Finding)', judul: 'Apa yang kamu pelajari dari kegiatan ini?', tanya: 'Apa pelajaran atau makna yang kamu temukan? Hubungkan dengan nilai Pancasila.', contoh: 'Saya belajar bahwa pekerjaan berat terasa ringan jika dikerjakan bersama. Ini sesuai dengan sila ketiga, Persatuan Indonesia.' },
-  { k: 'future', label: 'Penerapan (Future)', judul: 'Apa yang akan kamu lakukan setelah ini?', tanya: 'Apa rencana nyatamu ke depan setelah belajar dari pengalaman ini?', contoh: 'Mulai minggu depan saya akan membuang sampah pada tempatnya dan mengajak teman menjaga kebersihan kelas setiap hari.' }
+  { k: 'fakta', label: 'Fakta (Facts)', judul: 'Apa yang terjadi selama kegiatan?', tanya: 'Ceritakan kejadiannya apa adanya: kapan, di mana, siapa saja yang terlibat, dan apa yang kamu lakukan.' },
+  { k: 'feeling', label: 'Perasaan (Feeling)', judul: 'Apa yang kamu rasakan selama kegiatan berlangsung?', tanya: 'Ceritakan perasaan senang, bingung, bangga, ragu, atau tertantang yang kamu dan teman-temanmu alami.', emosi: true },
+  { k: 'finding', label: 'Pembelajaran (Finding)', judul: 'Apa yang kamu pelajari dari kegiatan ini?', tanya: 'Apa pelajaran atau makna yang kamu temukan?' },
+  { k: 'future', label: 'Penerapan (Future)', judul: 'Apa yang akan kamu lakukan setelah ini?', tanya: 'Apa rencana nyatamu ke depan setelah belajar dari pengalaman ini?' }
 ];
+// Langkah 1 = Judul Cerita, langkah 2–5 = empat bagian 4F
+const F4L = [{ k: 'judul', label: 'Judul Cerita', judul: 'Beri judul ceritamu', tanya: 'Tulis judul singkat yang menggambarkan pengalamanmu.', min: 5, maks: 120 }].concat(F4);
+// Contoh jawaban bawaan. Guru bisa menulis contoh sendiri per tugas (Kelola Tugas → Contoh jawaban).
+const PAKET_CONTOH = {
+  dharmayatra: {
+    judul: 'Perjalanan Suci yang Mengajarkanku Rasa Syukur',
+    fakta: 'Pada hari kegiatan Dharma Yatra, saya dan teman-teman sekelas berangkat bersama bapak dan ibu guru menuju pura yang menjadi tujuan kami. Di sana kami sembahyang bersama, mendengarkan penjelasan tentang sejarah dan makna tempat suci tersebut, lalu berkeliling dengan tertib sambil menjaga kebersihan. Sebelum pulang, kami makan bersama dan membereskan sampah kami sendiri.',
+    feeling: 'Awalnya saya agak gugup karena baru pertama kali mengikuti perjalanan suci bersama banyak teman. Setelah sembahyang bersama, hati saya terasa tenang dan damai. Saya juga merasa senang dan bangga karena bisa mengenal tempat suci dan saling membantu dengan teman-teman.',
+    finding: 'Saya belajar bahwa Dharma Yatra bukan sekadar berwisata, tetapi perjalanan untuk mendekatkan diri kepada Tuhan dan mengenal warisan leluhur. Saya juga belajar bersikap sopan, tertib, dan menjaga kebersihan di tempat suci, serta bersyukur atas kesempatan belajar ini.',
+    future: 'Setelah kegiatan ini, saya akan lebih rajin sembahyang di rumah dan menjaga sikap sopan di tempat ibadah. Saya juga akan mengajak teman-teman membuang sampah pada tempatnya dan menceritakan pengalaman ini kepada keluarga.'
+  },
+  umum: {
+    judul: 'Pengalaman yang Tidak Akan Kulupakan',
+    fakta: 'Pada hari kegiatan, saya dan teman-teman sekelas mengikuti kegiatan ini bersama bapak dan ibu guru. Kami berkumpul, berangkat bersama, lalu melakukan kegiatan sesuai arahan guru. Di akhir kegiatan, kami merapikan tempat dan pulang dengan tertib.',
+    feeling: 'Awalnya saya agak ragu dan sedikit gugup. Namun setelah bekerja sama dengan teman-teman, saya merasa senang dan bangga bisa mengikuti kegiatan ini sampai selesai.',
+    finding: 'Saya belajar bahwa kegiatan yang dikerjakan bersama terasa lebih ringan dan menyenangkan. Saya juga belajar disiplin, saling membantu, dan menghargai orang lain.',
+    future: 'Mulai minggu depan, saya akan lebih disiplin dan membantu teman yang membutuhkan. Saya juga akan menceritakan pengalaman ini kepada keluarga di rumah.'
+  }
+};
+// Urutan: contoh tulisan guru untuk tugas ini → paket bawaan yang cocok dengan judul tugas → paket umum
+function contohLangkah(S, k) {
+  const c = (S.tugas.contoh || {})[k]; if (c) return c;
+  return (/dharma\s*-?\s*yatra/i.test(S.tugas.judul + ' ' + (S.tugas.deskripsi || '')) ? PAKET_CONTOH.dharmayatra : PAKET_CONTOH.umum)[k];
+}
 const EMOSI = ['😊 Bangga & Puas', '⚡ Bersemangat', '🤔 Sempat Ragu', '🤝 Merasa Dihargai', '💪 Tertantang'];
 const IKON_KEB = ['clock', 'sparkle', 'flame', 'gift', 'book', 'users', 'shield'];
 const IKON_JENIS = { '4F': ['edit', 'blue'], 'Jurnal Pancasila': ['book', 'purple'], Kebiasaan: ['checkc', 'green'] };
@@ -53,40 +77,46 @@ PAGES.laporan = {
     if (args[0]) return laporanForm(el, args[0], live);
     const d = await api('siswa.tugas', {}); if (!live()) return;
     const l = d.tugas.filter((t) => t.jenis === '4F');
-    el.innerHTML = R(h`${ph('Laporan Refleksi 4F', 'Fakta, Feeling, Finding, Future — ceritakan pengalamanmu dengan jujur.')}${l.length ? h`<div class="grid g2">${l.map((t) => h`<a class="card hover acc-blue" href="#/laporan/${t.tugasId}"><div class="row between"><b class="head">${t.judul}</b>${statusPill(t.status)}</div><p class="sm muted mt8">${t.deskripsi || ''}</p><div class="row mt16"><div class="bar grow"><i style="width:${t.progres}%"></i></div><span class="sm muted">${t.progres}%</span></div><div class="sm muted mt8">Tenggat ${fmtTgl(t.tenggat)}${t.nilai !== null ? ' · Nilai ' + t.nilai : ''}</div></a>`)}</div>` : h`<div class="card">${empty('Belum ada tugas 4F', 'Gurumu belum menerbitkan tugas Laporan 4F untuk kelasmu.')}</div>`}`);
+    el.innerHTML = R(h`${ph('Laporan Refleksi 4F', 'Beri judul ceritamu, lalu isi Fakta, Feeling, Finding, dan Future dengan jujur.')}${l.length ? h`<div class="grid g2">${l.map((t) => h`<a class="card hover acc-blue" href="#/laporan/${t.tugasId}"><div class="row between"><b class="head">${t.judul}</b>${statusPill(t.status)}</div><p class="sm muted mt8">${t.deskripsi || ''}</p><div class="row mt16"><div class="bar grow"><i style="width:${t.progres}%"></i></div><span class="sm muted">${t.progres}%</span></div><div class="sm muted mt8">Tenggat ${fmtTgl(t.tenggat)}${t.nilai !== null ? ' · Nilai ' + t.nilai : ''}</div></a>`)}</div>` : h`<div class="card">${empty('Belum ada tugas 4F', 'Gurumu belum menerbitkan tugas Laporan 4F untuk kelasmu.')}</div>`}`);
   }
 };
 async function laporanForm(el, id, live) {
   const d = await api('4f.get', { tugasId: id }); if (!live()) return;
-  const S = window._f4 = { el: el, tugas: d.tugas, id: d.submission && d.submission.id, status: d.submission ? d.submission.status : 'Belum', nilai: d.nilai, min: d.minKarakter, isi: Object.assign({ fakta: '', feeling: '', finding: '', future: '', emosi: [], langkah: 1 }, d.submission ? d.submission.isi : {}), simpan: null, kotor: false };
-  S.langkah = S.status === 'Dinilai' ? 5 : Math.min(4, Math.max(1, Number(S.isi.langkah) || 1));
+  const isi0 = (d.submission && d.submission.isi) || {};
+  const S = window._f4 = { el: el, tugas: d.tugas, id: d.submission && d.submission.id, status: d.submission ? d.submission.status : 'Belum', nilai: d.nilai, min: d.minKarakter, isi: Object.assign({ judul: '', fakta: '', feeling: '', finding: '', future: '', emosi: [], langkah: 1 }, isi0), simpan: null, kotor: false };
+  const lama = !!d.submission && isi0.v !== 2 && isi0.langkah !== undefined;   // draf versi lama (4 langkah, tanpa judul): geser satu langkah
+  S.langkah = S.status === 'Dinilai' ? 6 : Math.min(5, Math.max(1, (Number(S.isi.langkah) || 1) + (lama ? 1 : 0)));
   f4Gambar();
 }
-const f4Terisi = (S, i) => String(S.isi[F4[i].k] || '').trim().length >= S.min;
+const minStep = (S, i) => F4L[i].min || S.min;
+const f4Terisi = (S, i) => String(S.isi[F4L[i].k] || '').trim().length >= minStep(S, i);
 function f4Gambar() {
-  const S = window._f4, el = S.el, mode = S.status === 'Dinilai';
-  if (mode) {
+  const S = window._f4, el = S.el;
+  if (S.status === 'Dinilai') {
     el.innerHTML = R(h`<a href="#/laporan" class="btn ghost sm">${ic('arrowl')} Semua tugas 4F</a>${ph(S.tugas.judul, 'Laporan sudah dinilai guru.', statusPill('Dinilai'))}
       <div class="card acc-orange mb16"><div class="row wrap"><div class="grade">${S.nilai.nilai}</div><div>${stars(S.nilai.bintang)}<div class="sm muted">Nilai dari gurumu</div></div></div><div class="bubble mt16"><b>Umpan balik guru</b><p>${S.nilai.umpanBalik}</p></div></div>
+      ${S.isi.judul ? h`<div class="card mb16"><span class="pill star">Judul ceritamu</span><h2 class="mt8">${S.isi.judul}</h2></div>` : ''}
       <div class="grid">${F4.map((f) => h`<div class="card"><span class="pill purple">${f.label}</span><div class="quote mt8">${S.isi[f.k]}</div></div>`)}</div>`);
     return;
   }
-  const f = F4[S.langkah - 1], n = String(S.isi[f.k] || '').length, selesai = F4.filter((x, i) => f4Terisi(S, i)).length;
+  const i = S.langkah - 1, f = F4L[i], isJudul = f.k === 'judul', nilai = String(S.isi[f.k] || ''), n = nilai.length, mn = minStep(S, i), selesai = F4L.filter((x, j) => f4Terisi(S, j)).length, sebelum = i >= 2 ? F4L[i - 1] : null;
   el.innerHTML = R(h`<a href="#/laporan" class="btn ghost sm">${ic('arrowl')} Semua tugas 4F</a>
     ${ph(S.tugas.judul, S.tugas.deskripsi, h`${S.status === 'Dikirim' ? pill('Terkirim — masih bisa direvisi sampai dinilai', 'orange') : ''}<span class="pill star">${ic('star')} Dinilai guru: 75–100 + bintang</span>`)}
     ${S.tugas.templat ? h`<div class="card flat mb16" style="background:var(--purple-soft);border:0">${ic('bulb')} <b>Petunjuk guru:</b> ${S.tugas.templat}</div>` : ''}
-    <section class="card mb16"><div class="row between wrap"><h3 class="row gap8">${ic('chart')} Progres Pengisian Refleksi</h3>${pill('Langkah ' + S.langkah + ' dari 4 (' + selesai * 25 + '% selesai)')}</div>
-      <div class="bar mt8"><i style="width:${selesai * 25}%"></i></div>
-      <div class="steps mt16">${F4.map((x, i) => h`<button class="step ${i + 1 === S.langkah ? 'cur' : f4Terisi(S, i) ? 'done' : ''}" data-act="f4step" data-i="${i + 1}" aria-current="${i + 1 === S.langkah ? 'step' : 'false'}"><span class="no">${f4Terisi(S, i) && i + 1 !== S.langkah ? ic('check') : i + 1}</span><span style="min-width:0"><small>${i + 1 === S.langkah ? 'Sedang diisi' : f4Terisi(S, i) ? 'Tersimpan' : 'Belum diisi'}</small><b>${x.label}</b></span></button>`)}</div></section>
-    ${S.langkah > 1 ? h`<section class="card mb16"><div class="row between wrap"><b class="row gap8">${ic('file')} Ringkasan ${F4[S.langkah - 2].label}</b><button class="btn sec sm" data-act="f4mundur">Ubah Jawaban</button></div><div class="quote mt8">${String(S.isi[F4[S.langkah - 2].k] || '(belum diisi)').slice(0, 420)}${String(S.isi[F4[S.langkah - 2].k] || '').length > 420 ? '…' : ''}</div></section>` : ''}
-    <section class="card"><span class="pill purple">LANGKAH ${S.langkah} DARI 4</span><h2 class="mt8">${f.judul}</h2><p class="muted">${f.tanya}</p>
-      <details class="contoh"><summary>${ic('bulb')} Lihat contoh pengisian ${f.label}</summary><p class="mt8"><i>Contoh: “${f.contoh}”</i></p></details>
+    <section class="card mb16"><div class="row between wrap"><h3 class="row gap8">${ic('chart')} Progres Pengisian Refleksi</h3>${pill('Langkah ' + S.langkah + ' dari 5 (' + selesai * 20 + '% selesai)')}</div>
+      <div class="bar mt8"><i style="width:${selesai * 20}%"></i></div>
+      <div class="steps mt16">${F4L.map((x, j) => h`<button class="step ${j === i ? 'cur' : f4Terisi(S, j) ? 'done' : ''}" data-act="f4step" data-i="${j + 1}" aria-current="${j === i ? 'step' : 'false'}"><span class="no">${f4Terisi(S, j) && j !== i ? ic('check') : j + 1}</span><span style="min-width:0"><small>${j === i ? 'Sedang diisi' : f4Terisi(S, j) ? 'Tersimpan' : 'Belum diisi'}</small><b>${x.label}</b></span></button>`)}</div></section>
+    ${!isJudul && S.isi.judul ? h`<div class="card flat mb16 row wrap" style="background:var(--star-soft);border:0"><span class="pill star">Judul ceritamu</span><b class="grow">“${S.isi.judul}”</b><button class="btn sec sm" data-act="f4step" data-i="1">Ubah judul</button></div>` : ''}
+    ${sebelum ? h`<section class="card mb16"><div class="row between wrap"><b class="row gap8">${ic('file')} Ringkasan ${sebelum.label}</b><button class="btn sec sm" data-act="f4mundur">Ubah Jawaban</button></div><div class="quote mt8">${String(S.isi[sebelum.k] || '(belum diisi)').slice(0, 420)}${String(S.isi[sebelum.k] || '').length > 420 ? '…' : ''}</div></section>` : ''}
+    <section class="card"><span class="pill purple">LANGKAH ${S.langkah} DARI 5</span><h2 class="mt8">${f.judul}</h2><p class="muted">${f.tanya}</p>
+      ${isJudul && S.tugas.deskripsi ? h`<div class="bubble mt8">${ic('bulb')} <b>Petunjuk dari gurumu:</b> ${S.tugas.deskripsi}</div>` : ''}
+      <details class="contoh"><summary>${ic('bulb')} Lihat contoh ${isJudul ? 'judul' : 'pengisian ' + f.label}</summary><p class="mt8"><i>Contoh: “${contohLangkah(S, f.k)}”</i></p><p class="sm muted">Contoh hanya untuk ide. Tulis pengalamanmu sendiri dengan kata-katamu.</p></details>
       ${f.emosi ? h`<div class="field"><label>Pilih 1–3 emosi yang paling menggambarkan perasaanmu:</label><div class="emo chips" id="f4emo">${EMOSI.map((e) => h`<button type="button" class="${S.isi.emosi.indexOf(e) > -1 ? 'on' : ''}" data-act="f4emo" data-e="${e}" aria-pressed="${S.isi.emosi.indexOf(e) > -1}">${e}</button>`)}</div></div>` : ''}
-      <div class="field"><div class="row between"><label for="f4t">Uraian ${f.label} <span style="color:var(--danger)">*</span></label><span class="sm muted">Jujur saja, tidak ada jawaban benar/salah</span></div>
-      <textarea class="textarea" id="f4t" rows="7" data-in="f4txt" placeholder="Tulis ceritamu di sini…">${S.isi[f.k]}</textarea>
-      <div class="row between"><span class="counter ${n >= S.min ? 'ok' : 'no'}" id="f4c">${n >= S.min ? '✓ Memenuhi syarat minimum' : 'Kurang ' + (S.min - n) + ' karakter lagi'}</span><span class="sm muted"><b id="f4n">${n}</b> / ${S.min} karakter minimum</span></div></div>
+      <div class="field"><div class="row between"><label for="f4t">${isJudul ? 'Judul ceritamu' : 'Uraian ' + f.label} <span style="color:var(--danger)">*</span></label><span class="sm muted">${isJudul ? 'Singkat dan bermakna' : 'Jujur saja, tidak ada jawaban benar/salah'}</span></div>
+      ${isJudul ? h`<input class="input" id="f4t" data-in="f4txt" maxlength="${f.maks}" value="${nilai}" placeholder="mis. ${contohLangkah(S, 'judul')}">` : h`<textarea class="textarea" id="f4t" rows="7" data-in="f4txt" placeholder="Tulis ceritamu di sini…">${nilai}</textarea>`}
+      <div class="row between"><span class="counter ${n >= mn ? 'ok' : 'no'}" id="f4c">${n >= mn ? '✓ Memenuhi syarat minimum' : 'Kurang ' + (mn - n) + ' karakter lagi'}</span><span class="sm muted"><b id="f4n">${n}</b> / ${mn} karakter minimum</span></div></div>
       <a class="btn sec sm" href="#/bukti/${S.tugas.tugasId}">${ic('image')} Lampirkan foto / tautan kegiatan</a></section>
-    <div class="bottombar noprint"><span class="sm muted grow" id="f4s">${S.simpan ? '✓ Tersimpan ' + S.simpan : 'Tersimpan otomatis saat kamu mengetik'}</span>${S.langkah > 1 ? h`<button class="btn sec" data-act="f4mundur">${ic('arrowl')} Kembali</button>` : ''}<button class="btn sec" data-act="f4draf">${ic('save')} Simpan Draf</button>${S.langkah < 4 ? h`<button class="btn" data-act="f4lanjut">Lanjut ke ${F4[S.langkah].label} ${ic('arrow')}</button>` : h`<button class="btn" data-act="f4kirim">${ic('check')} Kirim Laporan</button>`}</div>`);
+    <div class="bottombar noprint"><span class="sm muted grow" id="f4s">${S.simpan ? '✓ Tersimpan ' + S.simpan : 'Tersimpan otomatis saat kamu mengetik'}</span>${S.langkah > 1 ? h`<button class="btn sec" data-act="f4mundur">${ic('arrowl')} Kembali</button>` : ''}<button class="btn sec" data-act="f4draf">${ic('save')} Simpan Draf</button>${S.langkah < 5 ? h`<button class="btn" data-act="f4lanjut">Lanjut ke ${F4L[S.langkah].label} ${ic('arrow')}</button>` : h`<button class="btn" data-act="f4kirim">${ic('check')} Kirim Laporan</button>`}</div>`);
 }
 const f4Auto = debounce(() => f4Simpan(false, true), 2500);
 async function f4Simpan(kirim, senyap) {
@@ -94,14 +124,14 @@ async function f4Simpan(kirim, senyap) {
   try { await api('4f.simpan', { tugasId: S.tugas.tugasId, isi: S.isi, kirim: !!kirim }); S.kotor = false; const w = new Date(); S.simpan = String(w.getHours()).padStart(2, '0') + ':' + String(w.getMinutes()).padStart(2, '0'); const e = $('#f4s'); if (e) e.textContent = '✓ Tersimpan ' + S.simpan; if (kirim) S.status = 'Dikirim'; return true; }
   catch (e) { if (!senyap) gagal(e); else { const x = $('#f4s'); if (x) x.textContent = 'Belum tersimpan — ' + e.message; } return false; }
 }
-INP.f4txt = (t) => { const S = window._f4, f = F4[S.langkah - 1]; S.isi[f.k] = t.value; S.kotor = true; const n = t.value.length, c = $('#f4c'); $('#f4n').textContent = n; c.textContent = n >= S.min ? '✓ Memenuhi syarat minimum' : 'Kurang ' + (S.min - n) + ' karakter lagi'; c.className = 'counter ' + (n >= S.min ? 'ok' : 'no'); f4Auto(); };
+INP.f4txt = (t) => { const S = window._f4, f = F4L[S.langkah - 1], mn = minStep(S, S.langkah - 1); S.isi[f.k] = t.value; S.kotor = true; const n = t.value.length, c = $('#f4c'); $('#f4n').textContent = n; c.textContent = n >= mn ? '✓ Memenuhi syarat minimum' : 'Kurang ' + (mn - n) + ' karakter lagi'; c.className = 'counter ' + (n >= mn ? 'ok' : 'no'); f4Auto(); };
 ACT.f4emo = (b) => { const S = window._f4, e = b.dataset.e, i = S.isi.emosi.indexOf(e); if (i > -1) S.isi.emosi.splice(i, 1); else if (S.isi.emosi.length < 3) S.isi.emosi.push(e); else return toast('Pilih maksimal 3 emosi.', 'warn'); b.classList.toggle('on'); b.setAttribute('aria-pressed', i < 0); S.kotor = true; f4Auto(); };
-ACT.f4step = (b) => { const S = window._f4, i = Number(b.dataset.i); for (let k = 0; k < i - 1; k++) if (!f4Terisi(S, k)) return toast('Selesaikan langkah ' + (k + 1) + ' dulu.', 'warn'); S.langkah = i; f4Gambar(); };
+ACT.f4step = (b) => { const S = window._f4, i = Number(b.dataset.i); for (let k = 0; k < i - 1; k++) if (!f4Terisi(S, k)) return toast('Selesaikan langkah ' + (k + 1) + ' (' + F4L[k].label + ') dulu.', 'warn'); S.langkah = i; f4Gambar(); window.scrollTo(0, 0); };
 ACT.f4mundur = () => { const S = window._f4; S.langkah = Math.max(1, S.langkah - 1); f4Gambar(); window.scrollTo(0, 0); };
-ACT.f4lanjut = async () => { const S = window._f4; if (!f4Terisi(S, S.langkah - 1)) return toast('Tulis minimal ' + S.min + ' karakter pada bagian ini dulu.', 'warn'); S.langkah++; await f4Simpan(false, true); f4Gambar(); window.scrollTo(0, 0); };
+ACT.f4lanjut = async () => { const S = window._f4, i = S.langkah - 1; if (!f4Terisi(S, i)) return toast(F4L[i].k === 'judul' ? 'Tulis judul ceritamu dulu (minimal ' + F4L[i].min + ' karakter).' : 'Tulis minimal ' + minStep(S, i) + ' karakter pada bagian ini dulu.', 'warn'); S.langkah++; await f4Simpan(false, true); f4Gambar(); window.scrollTo(0, 0); };
 ACT.f4draf = async (b) => { b.disabled = true; if (await f4Simpan(false, false)) toast('Draf tersimpan.', 'success'); b.disabled = false; };
 ACT.f4kirim = (b) => {
-  const S = window._f4; const kurang = F4.filter((x, i) => !f4Terisi(S, i)).map((x) => x.label);
+  const S = window._f4; const kurang = F4L.filter((x, i) => !f4Terisi(S, i)).map((x) => x.label);
   if (kurang.length) return toast('Lengkapi dulu: ' + kurang.join(', '), 'warn');
   konfirmasi('Kirim laporan ke guru?', 'Setelah dikirim, gurumu akan menilai laporan ini. Kamu masih bisa merevisi sampai guru memberi nilai.', 'Ya, kirim', async () => { if (await f4Simpan(true, false)) { toast('Laporan 4F terkirim! 🎉', 'success'); window.scrollTo(0, 0); f4Gambar(); } });
 };
@@ -203,6 +233,6 @@ ACT.kumpul = async (b) => { b.disabled = true; try { await api('tugas.kirim', { 
 PAGES.nilai = {
   roles: ['siswa'], judul: 'Nilai & Umpan Balik', render: async (el, a, live) => {
     const d = await api('nilai.saya', {}); if (!live()) return; setChips({ bintang: d.totalBintang });
-    el.innerHTML = R(h`${ph('Nilai & Umpan Balik', 'Hasil penilaian dan pesan dari gurumu.', h`<span class="chip star">${ic('star')} ${d.totalBintang} Total Bintang</span>`)}${d.rows.length ? h`<div class="grid">${d.rows.map((r) => h`<article class="card acc-orange"><div class="row wrap"><div class="grow"><div class="row wrap gap8">${pill(r.jenis, 'purple')}${statusPill(r.status)}</div><h3 class="mt8">${r.tugas}</h3><div class="sm muted">Dikumpulkan ${fmtWaktu(r.waktu)}</div></div>${r.nilai !== null ? h`<div class="center"><div class="grade">${r.nilai}</div>${stars(r.bintang)}</div>` : h`<span class="muted sm">Menunggu penilaian guru</span>`}</div>${r.nilai !== null ? h`<div class="bubble mt16"><b>${r.guru || 'Guru'} berkata:</b><p>${r.umpanBalik}</p></div>` : ''}</article>`)}</div>` : h`<div class="card">${empty('Belum ada nilai', 'Kumpulkan tugasmu, lalu nilai dan umpan balik guru akan muncul di sini.', h`<a class="btn" href="#/bukti">Kumpulkan Tugas</a>`)}</div>`}`);
+    el.innerHTML = R(h`${ph('Nilai & Umpan Balik', 'Hasil penilaian dan pesan dari gurumu.', h`<span class="chip star">${ic('star')} ${d.totalBintang} Total Bintang</span>`)}${d.rows.length ? h`<div class="grid">${d.rows.map((r) => h`<article class="card acc-orange"><div class="row wrap"><div class="grow"><div class="row wrap gap8">${pill(r.jenis, 'purple')}${statusPill(r.status)}</div><h3 class="mt8">${r.tugas}</h3>${r.judulCerita ? h`<div class="sm"><b>Judul ceritamu:</b> ${r.judulCerita}</div>` : ''}<div class="sm muted">Dikumpulkan ${fmtWaktu(r.waktu)}</div></div>${r.nilai !== null ? h`<div class="center"><div class="grade">${r.nilai}</div>${stars(r.bintang)}</div>` : h`<span class="muted sm">Menunggu penilaian guru</span>`}</div>${r.nilai !== null ? h`<div class="bubble mt16"><b>${r.guru || 'Guru'} berkata:</b><p>${r.umpanBalik}</p></div>` : ''}</article>`)}</div>` : h`<div class="card">${empty('Belum ada nilai', 'Kumpulkan tugasmu, lalu nilai dan umpan balik guru akan muncul di sini.', h`<a class="btn" href="#/bukti">Kumpulkan Tugas</a>`)}</div>`}`);
   }
 };

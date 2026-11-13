@@ -119,7 +119,7 @@ tbody tr:hover{background:#F8FAFC}tr.clk{cursor:pointer}
 .sbtn{padding:2px}
 
 /* ---- Form 4F / Jurnal / Kebiasaan ---- */
-.steps{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}
+.steps{display:grid;grid-template-columns:repeat(5,1fr);gap:10px}
 .step{display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:12px;background:#F1F5F9;text-align:left;min-width:0}
 .step .no{width:30px;height:30px;border-radius:50%;display:grid;place-items:center;background:#E2E8F0;color:var(--text2);font-family:var(--f-head);font-weight:800;flex:none}
 .step.done{background:var(--primary-soft)}.step.done .no{background:var(--green);color:#fff}.step.cur{background:var(--primary-soft);outline:2px solid var(--primary)}.step.cur .no{background:var(--primary);color:#fff}
@@ -154,7 +154,7 @@ button.kpi{background:#fff;border:1px solid var(--border);border-radius:var(--r-
 .err{background:var(--danger-soft);color:#93000A;border-radius:12px;padding:10px 14px;text-align:left;margin-top:12px}
 .toolbar{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-bottom:14px}.toolbar .input,.toolbar .select{width:auto;min-width:150px;flex:1;max-width:240px}
 @media print{.side,.top,.bnav,.toasts,.noprint{display:none!important}.main{margin:0}.page{padding:0}body{background:#fff}.card{box-shadow:none}}
-@media (max-width:1180px){.home{grid-template-columns:1fr}.g4{grid-template-columns:repeat(2,minmax(0,1fr))}.g5{grid-template-columns:repeat(3,minmax(0,1fr))}}
+@media (max-width:1180px){.steps{grid-template-columns:repeat(3,1fr)}.home{grid-template-columns:1fr}.g4{grid-template-columns:repeat(2,minmax(0,1fr))}.g5{grid-template-columns:repeat(3,minmax(0,1fr))}}
 @media (max-width:860px){
   .side{transform:translateX(-100%);transition:.2s;box-shadow:var(--sh3);width:260px}.side.open{transform:none}
   .scrim.open{display:block;position:fixed;inset:0;background:rgba(30,41,59,.4);z-index:35}
