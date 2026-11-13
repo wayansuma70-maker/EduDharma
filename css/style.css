@@ -146,6 +146,7 @@ button.kpi{background:#fff;border:1px solid var(--border);border-radius:var(--r-
 .login{flex:1 1 100%;width:100%;min-height:100vh;display:grid;place-items:center;justify-items:center;padding:20px;background:radial-gradient(circle at 20% 10%,#fff 0,transparent 40%),var(--canvas)}
 .login .card{max-width:440px;width:100%;margin:0 auto;text-align:center;padding:32px 28px;box-shadow:var(--sh2)}.login svg.mascot{width:130px;height:130px}
 .login .tabs{justify-content:center}.kode-in{font-family:'Courier New',monospace;font-weight:700;letter-spacing:.25em;text-transform:uppercase;text-align:center;font-size:18px}
+.logo-wrap{min-height:64px;display:flex;justify-content:center;align-items:center}.logo-sekolah{display:block;max-width:180px;max-height:140px;width:auto;height:auto;object-fit:contain;margin:0 auto}
 .login-slogan{font-family:var(--f-head);font-weight:700;line-height:1.5;margin-top:6px}
 .login h1{font-size:26px;font-weight:800;color:var(--primary);margin-top:8px}
 .gbtn{display:flex;justify-content:center;min-height:44px;margin:22px 0 8px}

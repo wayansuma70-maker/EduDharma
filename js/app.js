@@ -17,15 +17,17 @@ function nav(hash) { if (location.hash === '#/' + hash) renderRoute(); else loca
 function keluar(sesiHabis) { Sesi.clear(); tutupModal(); location.hash = ''; renderLogin(sesiHabis ? 'Sesi berakhir. Silakan masuk lagi.' : ''); }
 
 // ---------- Login ----------
+const LOGO_SEKOLAH = 'https://i.imgur.com/fd0CCrC.png';   // logo sekolah di halaman login (ganti alamat ini bila logo dipindah)
 let _tabLogin = null;
 async function renderLogin(pesan) {
   document.title = 'Masuk — EduDharma';
   const darurat = location.hash === '#darurat';
-  $('#app').innerHTML = R(h`<main class="login"><div class="card"><div>${MASKOT}</div><h1>EduDharma</h1><p class="muted login-slogan">Darma Yatra Sempatik</p>
+  $('#app').innerHTML = R(h`<main class="login"><div class="card"><div class="logo-wrap" id="logo-wrap"><img class="logo-sekolah" id="logo-img" src="${LOGO_SEKOLAH}" alt="Logo sekolah" referrerpolicy="no-referrer"></div><h1>EduDharma</h1><p class="muted login-slogan">SEMPATIK</p>
     ${pesan ? h`<div class="err" role="alert">${pesan}</div>` : ''}
     ${darurat ? h`<form id="f-darurat" class="mt16" style="text-align:left"><div class="field"><label for="du">Nama pengguna darurat</label><input class="input" id="du" autocomplete="username" required></div><div class="field"><label for="dp">Kata sandi darurat</label><input class="input" id="dp" type="password" autocomplete="current-password" required></div><button class="btn block" type="submit">Masuk Darurat</button><p class="hint muted sm mt8">Hanya untuk admin saat Google login belum disiapkan. Sandi ada di log setup Apps Script.</p></form>`
       : h`<div id="login-body"><div class="sk mt16" style="height:150px"></div></div>`}
     <div id="login-err"></div></div></main>`);
+  const lg = $('#logo-img'); if (lg) lg.addEventListener('error', () => { $('#logo-wrap').innerHTML = R(MASKOT); });   // bila gambar logo tak terbuka (diblokir/offline), tampilkan maskot
   hangatkan();
   if (darurat) { $('#f-darurat').onsubmit = async (e) => { e.preventDefault(); const b = tombolKirim(e); b.disabled = true; try { const d = await api('auth.darurat', { username: $('#du').value, password: $('#dp').value }); Sesi.set({ token: d.token, me: d.me, meta: d.meta }); location.hash = ''; mulai(); } catch (er) { $('#login-err').innerHTML = R(h`<div class="err" role="alert">${er.message}</div>`); b.disabled = false; } }; return; }
   try { window._cfgPublik = await api('auth.config', {}); loginBody(); }
@@ -65,7 +67,7 @@ function renderShell() {
   const navHtml = grup.map((g, i) => h`${i ? h`<div class="sec">Administrasi</div>` : ''}${g.map(item)}`);
   const semua = [].concat(...grup), bn = semua.slice(0, 4);
   $('#app').innerHTML = R(h`<a class="skip" href="#view">Lewati ke konten</a>
-    <aside class="side" id="side" aria-label="Navigasi utama"><div class="brand"><span class="logo">${ic('shield')}</span><div><b>EduDharma</b><small>EduDharma Sempatik Glory</small></div></div>
+    <aside class="side" id="side" aria-label="Navigasi utama"><div class="brand"><span class="logo">${ic('shield')}</span><div><b>EduDharma</b><small>Sempatik Glory</small></div></div>
       <nav class="nav">${navHtml}</nav><button class="btn sec sm hide mt8" id="btn-install" data-act="pasang">${ic('download')} Pasang aplikasi</button>
       <div class="me">${avatar(me.nama, me.foto)}<div class="grow"><b>${me.nama}</b><small>${me.peran === 'siswa' ? 'Kelas ' + (me.kelas || '-') : me.peran === 'guru' ? 'Guru' : 'Admin'}</small></div><button class="btn ghost icon" data-act="keluar" aria-label="Keluar" title="Keluar">${ic('logout')}</button></div></aside>
     <div class="scrim" id="scrim" data-act="menu"></div>
