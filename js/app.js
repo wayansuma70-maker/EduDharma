@@ -67,7 +67,7 @@ function renderShell() {
   const navHtml = grup.map((g, i) => h`${i ? h`<div class="sec">Administrasi</div>` : ''}${g.map(item)}`);
   const semua = [].concat(...grup), bn = semua.slice(0, 4);
   $('#app').innerHTML = R(h`<a class="skip" href="#view">Lewati ke konten</a>
-    <aside class="side" id="side" aria-label="Navigasi utama"><div class="brand"><span class="logo">${ic('shield')}</span><div><b>EduDharma</b><small>Sempatik Glory</small></div></div>
+    <aside class="side" id="side" aria-label="Navigasi utama"><div class="brand"><span class="logo img"><img src="${LOGO_APLIKASI}" alt="Logo EduDharma" data-fb="logo" referrerpolicy="no-referrer"></span><div><b>EduDharma</b><small>Sempatik Glory</small></div></div>
       <nav class="nav">${navHtml}</nav><button class="btn sec sm hide mt8" id="btn-install" data-act="pasang">${ic('download')} Pasang aplikasi</button>
       <div class="me">${avatar(me.nama, me.foto)}<div class="grow"><b>${me.nama}</b><small>${me.peran === 'siswa' ? 'Kelas ' + (me.kelas || '-') : me.peran === 'guru' ? 'Guru' : 'Admin'}</small></div><button class="btn ghost icon" data-act="keluar" aria-label="Keluar" title="Keluar">${ic('logout')}</button></div></aside>
     <div class="scrim" id="scrim" data-act="menu"></div>
