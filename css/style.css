@@ -133,6 +133,7 @@ tbody tr:hover{background:#F8FAFC}tr.clk{cursor:pointer}
 .day{min-width:56px;padding:8px 6px;border-radius:12px;background:#F1F5F9;text-align:center;font-family:var(--f-head);flex:none}.day small{display:block;font-size:11px;color:var(--text2);font-weight:700}.day b{font-size:18px}
 .day.on{background:var(--primary);color:#fff}.day.on small{color:#DCE9FF}.day .dot{display:block;width:6px;height:6px;border-radius:50%;margin:4px auto 0;background:#CBD5E1}.day .dot.ok{background:var(--green)}.day[disabled]{opacity:.4;cursor:not-allowed}
 .sila-card.done{border-color:#BBF7D0}.sila-card .top2{display:flex;gap:12px;align-items:flex-start}
+.habit-card .textarea{min-height:84px}
 .habit{display:flex;align-items:center;gap:14px;padding:14px 16px}.habit .ib{background:var(--green-soft)}
 .habit.on{border-color:#86EFAC;background:#F6FFFA}
 .drop{border:2px dashed var(--purple);border-radius:14px;padding:28px 16px;text-align:center;background:#FAF8FF;transition:.12s;cursor:pointer}.drop.over,.drop:hover{border-color:var(--primary);background:var(--primary-soft)}

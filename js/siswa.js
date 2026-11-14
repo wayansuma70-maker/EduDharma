@@ -170,23 +170,57 @@ INP.jfoto = async (t) => {
   try { toast('Mengunggah foto…'); const b64 = await kompresGambar(f, 1600, 0.8); await api('bukti.upload', { jurnal: { tanggal: J.tanggal, sila: Number(s) }, nama: f.name.replace(/\.\w+$/, '') + '.jpg', mime: 'image/jpeg', base64: b64 }); J.entri[s].foto = (J.entri[s].foto || 0) + 1; toast('Foto aksi terunggah.', 'success'); jurnalGambar(); } catch (e) { gagal(e); }
 };
 
-// =============== 7 KEBIASAAN ===============
+// =============== 7 KEBIASAAN (jurnal cerita) ===============
+// Setiap kebiasaan dicatat dengan cerita singkat; kebiasaan baru dihitung "dilakukan" bila ceritanya terisi (minimal karakter dari server).
+const KEB_PANDUAN = [
+  ['Ceritakan: jam berapa kamu bangun dan apa yang kamu lakukan setelah bangun?', 'Saya bangun jam 05.00, lalu merapikan tempat tidur dan membantu ibu menyiapkan sarapan.'],
+  ['Ibadah apa yang kamu lakukan hari ini, bersama siapa, dan apa yang kamu rasakan?', 'Saya berdoa bersama keluarga sebelum berangkat sekolah dan beribadah sesuai agama saya.'],
+  ['Olahraga apa yang kamu lakukan, berapa lama, dan di mana?', 'Saya bersepeda bersama kakak selama 30 menit di sekitar rumah.'],
+  ['Apa yang kamu makan hari ini? Sebutkan sayur, buah, atau lauk yang bergizi.', 'Saya sarapan nasi, telur, dan sayur bayam, lalu makan buah pisang saat istirahat.'],
+  ['Apa yang kamu pelajari atau baca hari ini di luar jam pelajaran?', 'Saya membaca buku cerita selama 20 menit dan mengulang pelajaran IPA.'],
+  ['Apa kegiatan baikmu bersama keluarga, teman, atau tetangga hari ini?', 'Saya membantu tetangga menyapu halaman dan ikut kerja bakti di lingkungan.'],
+  ['Jam berapa kamu tidur dan apa yang kamu lakukan sebelum tidur?', 'Saya tidur jam 20.30 setelah menyikat gigi dan berdoa.']
+];
 PAGES.kebiasaan = { roles: ['siswa'], judul: '7 Kebiasaan', render: async (el, a, live) => { await kebMuat(el, undefined, live); } };
-async function kebMuat(el, tgl, live) { const d = await api('kebiasaan.get', tgl ? { tanggal: tgl } : {}); if (live && !live()) return; window._kb = Object.assign({ el: el }, d); setChips({ hariApi: d.hariApi }); kebGambar(); }
-function kebGambar() {
-  const K = window._kb, n = K.nilai.reduce((a, b) => a + b, 0), nama = meta().kebiasaan, tg = tglObj(K.tanggal), dapat = (t) => t <= K.hariIni && selisihHari(K.hariIni) - selisihHari(t) <= 7;
-  K.el.innerHTML = R(h`<section class="card mb16"><div class="row wrap"><span class="ib green">${ic('checkc')}</span><div class="grow"><h1 style="font-size:24px">7 Kebiasaan Anak Indonesia Hebat</h1><p class="muted">Centang kebiasaan baik yang kamu lakukan. ${tg.getDate()} ${BULAN[tg.getMonth()]} ${tg.getFullYear()}</p></div><span class="chip fire">${ic('flame')} ${K.hariApi} Hari Api</span></div>
-    <div class="row mt16"><div class="bar g grow" role="progressbar" aria-valuenow="${n}" aria-valuemin="0" aria-valuemax="7"><i style="width:${Math.round(n / 7 * 100)}%"></i></div><b>${n}/7</b></div>${n >= K.target ? h`<p class="sm mt8" style="color:var(--green-d)"><b>🎉 Target hari ini (${K.target} kebiasaan) tercapai!</b></p>` : h`<p class="sm muted mt8">Target hari ini: ${K.target} kebiasaan.</p>`}
-    <div class="week-strip mt16">${K.minggu.map((x) => h`<button class="day ${x.tgl === K.tanggal ? 'on' : ''}" data-act="khari" data-t="${x.tgl}" ${dapat(x.tgl) ? '' : 'disabled'} aria-label="${fmtTgl(x.tgl)}"><small>${HARI[tglObj(x.tgl).getDay()]}</small><b>${tglObj(x.tgl).getDate()}</b><span class="dot ${x.jumlah >= K.target ? 'ok' : ''}"></span></button>`)}</div></section>
-    <div class="grid mb16">${nama.map((s, i) => h`<div class="card habit ${K.nilai[i] ? 'on' : ''}"><span class="ib">${ic(IKON_KEB[i])}</span><div class="grow"><b class="head">${i + 1}. ${s}</b></div><label class="switch"><input type="checkbox" data-ch="keb" data-i="${i}" ${K.nilai[i] ? 'checked' : ''} aria-label="${s}"><i></i></label></div>`)}</div>
-    <div class="card"><div class="field"><label for="kc">Catatan (opsional)</label><textarea class="textarea" id="kc" rows="3" data-in="kcat" placeholder="Ceritakan singkat kegiatan baikmu hari ini…">${K.catatan}</textarea></div><button class="btn" data-act="ksimpan">${ic('save')} Simpan Kebiasaan</button> <span class="sm muted" id="ks">Perubahan tersimpan otomatis.</span></div>`);
+async function kebMuat(el, tgl, live) {
+  const d = await api('kebiasaan.get', tgl ? { tanggal: tgl } : {}); if (live && !live()) return;
+  window._kb = Object.assign({ el: el, draft: d.cerita.slice(), legacy: d.nilai.map((v, i) => v === 1 && !d.cerita[i]), kotor: false }, d); setChips({ hariApi: d.hariApi }); kebGambar();
 }
-const kebAuto = debounce(() => kebSimpan(true), 900);
-async function kebSimpan(senyap) { const K = window._kb; try { const r = await api('kebiasaan.simpan', { tanggal: K.tanggal, nilai: K.nilai, catatan: K.catatan }); const s = $('#ks'); if (s) s.textContent = '✓ Tersimpan'; if (!senyap) toast(r ? 'Kebiasaan tersimpan.' : '', 'success'); const b = await api('kebiasaan.get', { tanggal: K.tanggal }).catch(() => null); if (b) { K.minggu = b.minggu; K.hariApi = b.hariApi; setChips({ hariApi: b.hariApi }); } } catch (e) { gagal(e); } }
-INP.keb = (t) => { const K = window._kb; K.nilai[Number(t.dataset.i)] = t.checked ? 1 : 0; const y = window.scrollY; kebGambar(); window.scrollTo(0, y); kebAuto(); };
-INP.kcat = (t) => { window._kb.catatan = t.value; kebAuto(); };
-ACT.ksimpan = async (b) => { b.disabled = true; await kebSimpan(false); kebGambar(); };
-ACT.khari = (b) => { kebMuat(window._kb.el, b.dataset.t, null).catch(gagal); };
+const kebAda = (K, i) => K.draft[i].trim().length >= K.min || (K.legacy[i] && !K.draft[i].trim());   // dihitung dilakukan
+const kebJumlah = (K) => K.draft.reduce((a, x, i) => a + (kebAda(K, i) ? 1 : 0), 0);
+const kebPendek = (K) => K.draft.map((x, i) => (x.trim().length > 0 && x.trim().length < K.min ? i + 1 : 0)).filter(Boolean);
+function kebStatus(K, i) { return K.draft[i].trim().length >= K.min ? pill('✓ Sudah dicatat', 'green') : K.legacy[i] && !K.draft[i].trim() ? pill('Tercatat (tanpa cerita)', 'gray') : K.draft[i].trim() ? pill('Masih terlalu pendek', 'orange') : pill('Belum diisi', 'gray'); }
+function kebGambar() {
+  const K = window._kb, n = kebJumlah(K), nama = meta().kebiasaan, tg = tglObj(K.tanggal), dapat = (t) => t <= K.hariIni && selisihHari(K.hariIni) - selisihHari(t) <= 7;
+  K.el.innerHTML = R(h`<section class="card mb16"><div class="row wrap"><span class="ib green">${ic('checkc')}</span><div class="grow"><h1 style="font-size:24px">Jurnal 7 Kebiasaan Anak Indonesia Hebat</h1><p class="muted">Ceritakan secara singkat kegiatan baik yang kamu lakukan. ${tg.getDate()} ${BULAN[tg.getMonth()]} ${tg.getFullYear()}</p></div><span class="chip fire">${ic('flame')} ${K.hariApi} Hari Api</span></div>
+    <div class="row mt16"><div class="bar g grow" role="progressbar" aria-valuenow="${n}" aria-valuemin="0" aria-valuemax="7"><i id="kbar" style="width:${Math.round(n / 7 * 100)}%"></i></div><b id="kjml">${n}/7</b></div>
+    <p class="sm muted mt8" id="ktarget">${n >= K.target ? '🎉 Target hari ini (' + K.target + ' kebiasaan) tercapai!' : 'Target hari ini: ' + K.target + ' kebiasaan. Kebiasaan dihitung bila kamu menuliskan ceritanya.'}</p>
+    <div class="week-strip mt16">${K.minggu.map((x) => h`<button class="day ${x.tgl === K.tanggal ? 'on' : ''}" data-act="khari" data-t="${x.tgl}" ${dapat(x.tgl) ? '' : 'disabled'} aria-label="${fmtTgl(x.tgl)}"><small>${HARI[tglObj(x.tgl).getDay()]}</small><b>${tglObj(x.tgl).getDate()}</b><span class="dot ${x.jumlah >= K.target ? 'ok' : ''}"></span></button>`)}</div></section>
+    <div class="grid g2 mb16">${nama.map((s, i) => h`<section class="card habit-card ${kebAda(K, i) ? 'acc-green' : ''}" id="kk${i}"><div class="row"><span class="ib green">${ic(IKON_KEB[i])}</span><div class="grow"><b class="head">${i + 1}. ${s}</b></div><span id="kp${i}">${kebStatus(K, i)}</span></div>
+      <div class="bubble mt8 sm">${ic('bulb')} ${KEB_PANDUAN[i][0]}</div>
+      <div class="field mt8"><label class="skip" for="kc${i}">Cerita ${s}</label><textarea class="textarea" id="kc${i}" rows="3" maxlength="400" data-in="kcerita" data-i="${i}" placeholder="Contoh: ${KEB_PANDUAN[i][1]}">${K.draft[i]}</textarea><div class="row between"><span class="sm muted">Min. ${K.min} karakter</span><span class="counter ${K.draft[i].trim().length >= K.min ? 'ok' : 'no'}" id="kn${i}">${K.draft[i].trim().length}</span></div></div></section>`)}</div>
+    <div class="bottombar noprint"><span class="ib green">${ic('checkc')}</span><div class="grow"><b id="kjml2">${n}/7 kebiasaan sudah diceritakan</b><div class="sm muted" id="ks">Cerita tersimpan otomatis saat sudah cukup panjang.</div></div><button class="btn" data-act="ksimpan">${ic('save')} Simpan Kebiasaan</button></div>`);
+}
+function kebSegarkan(i) {
+  const K = window._kb, n = kebJumlah(K), t = K.draft[i].trim().length;
+  $('#kp' + i).innerHTML = R(kebStatus(K, i)); const c = $('#kn' + i); c.textContent = t; c.className = 'counter ' + (t >= K.min ? 'ok' : 'no'); $('#kk' + i).classList.toggle('acc-green', kebAda(K, i));
+  $('#kbar').style.width = Math.round(n / 7 * 100) + '%'; $('#kjml').textContent = n + '/7'; $('#kjml2').textContent = n + '/7 kebiasaan sudah diceritakan';
+  $('#ktarget').textContent = n >= K.target ? '🎉 Target hari ini (' + K.target + ' kebiasaan) tercapai!' : 'Target hari ini: ' + K.target + ' kebiasaan. Kebiasaan dihitung bila kamu menuliskan ceritanya.';
+}
+const kebAuto = debounce(() => kebSimpan(true), 2000);
+async function kebSimpan(senyap) {
+  const K = window._kb, pendek = kebPendek(K);
+  if (pendek.length) { const e = $('#ks'); if (e) e.textContent = 'Cerita nomor ' + pendek.join(', ') + ' masih terlalu pendek (min. ' + K.min + ' karakter) — belum disimpan.'; if (!senyap) toast('Cerita nomor ' + pendek.join(', ') + ' masih terlalu pendek. Tambahkan sedikit lagi atau kosongkan.', 'warn'); return false; }
+  try {
+    const r = await api('kebiasaan.simpan', { tanggal: K.tanggal, cerita: K.draft }); K.kotor = false; const e = $('#ks'); if (e) e.textContent = '✓ Tersimpan';
+    if (!senyap) toast(r.jumlah + ' dari 7 kebiasaan tercatat. Hebat! 🌟', 'success');
+    const b = await api('kebiasaan.get', { tanggal: K.tanggal }).catch(() => null); if (b) { K.minggu = b.minggu; K.hariApi = b.hariApi; K.nilai = b.nilai; K.legacy = b.nilai.map((v, i) => v === 1 && !b.cerita[i]); setChips({ hariApi: b.hariApi }); }
+    return true;
+  } catch (e) { gagal(e); return false; }
+}
+INP.kcerita = (t) => { const K = window._kb, i = Number(t.dataset.i); K.draft[i] = t.value; K.kotor = true; kebSegarkan(i); kebAuto(); };
+ACT.ksimpan = async (b) => { b.disabled = true; const ok = await kebSimpan(false); if (ok) { const y = window.scrollY; kebGambar(); window.scrollTo(0, y); } b.disabled = false; };
+ACT.khari = async (b) => { const K = window._kb; if (K.kotor && !(await kebSimpan(true))) return toast('Perbaiki cerita yang terlalu pendek (atau kosongkan) sebelum pindah hari.', 'warn'); kebMuat(K.el, b.dataset.t, null).catch(gagal); };
 
 // =============== KUMPULKAN BUKTI ===============
 PAGES.bukti = {
